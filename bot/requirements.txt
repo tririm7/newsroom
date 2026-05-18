@@ -1,7 +1,7 @@
 feedparser>=6.0
 requests>=2.31
 psycopg[binary]>=3.2
-anthropic>=0.40
+openai>=1.50
 python-dotenv>=1.0
 bcrypt>=4.1
 pyyaml>=6.0

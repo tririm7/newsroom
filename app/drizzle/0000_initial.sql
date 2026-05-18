@@ -2,6 +2,7 @@
 -- Applied automatically by postgres on first start via /docker-entrypoint-initdb.d/.
 -- Multi-tenant ready: every table carries project_id (Newsroom Open uses project_id = 1).
 -- Per patches v1.1: no `sessions` table (JWT-only auth), bot_runs.errors is JSONB.
+-- Per v0.2 spec: projects carries llm_provider / llm_model / llm_base_url.
 
 -- ============================================================================
 -- projects: site metadata + behavior knobs (single row in Newsroom Open)
@@ -30,6 +31,13 @@ CREATE TABLE projects (
 
     ingestion_cron TEXT NOT NULL DEFAULT '*/5 * * * *',
     generation_cron TEXT NOT NULL DEFAULT '15,45 * * * *',
+
+    -- LLM provider config. Mirrored in .env (runtime) so the bot can read it
+    -- without a DB round-trip per request. The admin UI keeps both in sync.
+    llm_provider TEXT NOT NULL DEFAULT 'deepseek'
+        CHECK (llm_provider IN ('deepseek','openai','anthropic','gemini','grok','yandex','openrouter','custom')),
+    llm_model TEXT NOT NULL DEFAULT 'deepseek-chat',
+    llm_base_url TEXT,  -- only for provider=custom
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -101,7 +109,7 @@ CREATE TABLE items (
 );
 
 -- ============================================================================
--- clusters: items grouped by topic by Claude
+-- clusters: items grouped by topic by the LLM
 -- ============================================================================
 CREATE TABLE clusters (
     id SERIAL PRIMARY KEY,
@@ -122,7 +130,7 @@ ALTER TABLE items ADD CONSTRAINT fk_items_cluster
     FOREIGN KEY (cluster_id) REFERENCES clusters(id) ON DELETE SET NULL;
 
 -- ============================================================================
--- articles: Claude-generated articles
+-- articles: LLM-generated articles
 -- ============================================================================
 CREATE TABLE articles (
     id SERIAL PRIMARY KEY,

@@ -1,9 +1,8 @@
-"""Contract tests for article_writer — Claude + DB mocked, prompts real."""
+"""Contract tests for article_writer — LLM + DB mocked, prompts real."""
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -47,19 +46,10 @@ def test_sanitize_slug_fallback_when_empty():
     assert article_writer._sanitize_slug("!!!", 42) == "cluster-42"
 
 
-# ---------- contract test with mocked Claude + DB ----------
+# ---------- contract test with mocked LLM + DB ----------
 
 
-def _fake_claude(payload: dict) -> MagicMock:
-    block = SimpleNamespace(type="text", text=json.dumps(payload))
-    response = SimpleNamespace(content=[block])
-    client = MagicMock()
-    client.messages.create.return_value = response
-    return client
-
-
-def test_write_article_no_items_returns_none(monkeypatch):
-    monkeypatch.setattr(article_writer, "_claude", lambda: _fake_claude({}))
+def test_write_article_no_items_returns_none():
     result = article_writer.write_article(
         project_id=1, language="en",
         cluster={"id": 5, "headline": "X", "items": []},
@@ -67,21 +57,18 @@ def test_write_article_no_items_returns_none(monkeypatch):
     assert result is None
 
 
-def test_write_article_happy_path(monkeypatch):
-    claude_response = {
+def test_write_article_happy_path():
+    llm_response = json.dumps({
         "title": "Nvidia hits record revenue",
         "slug": "nvidia-record-revenue",
         "excerpt": "Q3 results crushed expectations.",
         "content_html": "<p>Para 1.</p><p>Para 2.</p>",
-    }
-    monkeypatch.setattr(article_writer, "_claude", lambda: _fake_claude(claude_response))
+    })
     saved = {}
 
     def fake_save_article(**kwargs):
         saved.update(kwargs)
         return 42  # article_id
-
-    monkeypatch.setattr(article_writer.db, "save_article", fake_save_article)
 
     cluster = {
         "id": 5,
@@ -91,37 +78,60 @@ def test_write_article_happy_path(monkeypatch):
             {"source_name": "Bloomberg", "title": "Nvidia Q3", "summary": "Beat", "url": "https://x"},
         ],
     }
-    result = article_writer.write_article(project_id=1, language="en", cluster=cluster)
+
+    with patch.object(article_writer.llm, "generate", return_value=llm_response), \
+         patch.object(article_writer.db, "save_article", fake_save_article):
+        result = article_writer.write_article(project_id=1, language="en", cluster=cluster)
 
     assert result is not None
     assert result["id"] == 42
     assert result["slug"] == "nvidia-record-revenue"
-    # save_article was called with correct fields
     assert saved["project_id"] == 1
     assert saved["cluster_id"] == 5
-    assert saved["title"] == claude_response["title"]
-    assert saved["content_html"] == claude_response["content_html"]
+    assert saved["title"] == "Nvidia hits record revenue"
+    assert saved["content_html"] == "<p>Para 1.</p><p>Para 2.</p>"
     assert saved["language"] == "en"
 
 
-def test_write_article_missing_keys_returns_none(monkeypatch):
-    # Claude forgot content_html → article rejected
-    monkeypatch.setattr(article_writer, "_claude",
-                        lambda: _fake_claude({"title": "x", "slug": "x", "excerpt": "x"}))
-    result = article_writer.write_article(
-        project_id=1, language="en",
-        cluster={"id": 5, "headline": "X", "items": [{"source_name": "s", "title": "t", "summary": "", "url": "u"}]},
-    )
+def test_write_article_missing_keys_returns_none():
+    # Article writer rejects responses lacking required keys (here: content_html)
+    bad_response = json.dumps({"title": "x", "slug": "x", "excerpt": "x"})
+    with patch.object(article_writer.llm, "generate", return_value=bad_response):
+        result = article_writer.write_article(
+            project_id=1, language="en",
+            cluster={
+                "id": 5, "headline": "X",
+                "items": [{"source_name": "s", "title": "t", "summary": "", "url": "u"}],
+            },
+        )
     assert result is None
 
 
-def test_write_article_slug_conflict_returns_none(monkeypatch):
-    monkeypatch.setattr(article_writer, "_claude",
-                        lambda: _fake_claude({"title": "x", "slug": "x", "excerpt": "x", "content_html": "<p>x</p>"}))
-    monkeypatch.setattr(article_writer.db, "save_article", lambda **kw: 0)  # 0 means conflict
+def test_write_article_slug_conflict_returns_none():
+    ok_response = json.dumps({
+        "title": "x", "slug": "x", "excerpt": "x", "content_html": "<p>x</p>",
+    })
+    with patch.object(article_writer.llm, "generate", return_value=ok_response), \
+         patch.object(article_writer.db, "save_article", lambda **kw: 0):  # 0 → slug conflict
+        result = article_writer.write_article(
+            project_id=1, language="en",
+            cluster={
+                "id": 5, "headline": "X",
+                "items": [{"source_name": "s", "title": "t", "summary": "", "url": "u"}],
+            },
+        )
+    assert result is None
 
-    result = article_writer.write_article(
-        project_id=1, language="en",
-        cluster={"id": 5, "headline": "X", "items": [{"source_name": "s", "title": "t", "summary": "", "url": "u"}]},
-    )
+
+def test_write_article_llm_call_failure_returns_none():
+    # If llm.generate raises, write_article logs and returns None (one bad
+    # cluster shouldn't crash the whole main_full run).
+    with patch.object(article_writer.llm, "generate", side_effect=RuntimeError("boom")):
+        result = article_writer.write_article(
+            project_id=1, language="en",
+            cluster={
+                "id": 5, "headline": "X",
+                "items": [{"source_name": "s", "title": "t", "summary": "", "url": "u"}],
+            },
+        )
     assert result is None

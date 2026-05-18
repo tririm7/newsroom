@@ -5,6 +5,51 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 ## [Unreleased]
 
+### Added
+
+- M7 (v0.2 in-progress): LLM provider abstraction. Bot no longer talks to
+  Anthropic directly — clustering and article generation route through a
+  new `bot/llm.py` dispatcher that supports eight providers:
+  `deepseek` / `openai` / `anthropic` / `gemini` / `grok` / `yandex` /
+  `openrouter` / `custom`. Seven of them share the OpenAI Chat Completions
+  wire format and are routed via the official `openai` Python SDK with
+  swapped `base_url`. Yandex GPT uses a thin proprietary adapter
+  (`bot/llm_yandex.py`) that mimics the OpenAI SDK shape (`Api-Key` auth,
+  not IAM; `LLM_MODEL` encoded as `<folder_id>/<model>`).
+
+  Schema: `projects` gains `llm_provider` (CHECK-constrained to the eight
+  values, default `deepseek`), `llm_model` (default `deepseek-chat`), and
+  `llm_base_url` (used only when `llm_provider='custom'`). Drizzle mirror
+  updated.
+
+  `.env`: `ANTHROPIC_API_KEY` retired (no v0.1 clients to migrate per user
+  decision). New vars: `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`,
+  `LLM_BASE_URL`. `.env.example` documents the per-provider model
+  conventions. `docker-compose.yml` passes them to `app`, `bot`, and
+  `bot-cron`. Installer writes them from wizard answers (M8 will add the
+  provider-picker step).
+
+  bot/requirements.txt: drops `anthropic` SDK, adds `openai>=1.50`.
+
+  Tests: 21 new (`test_llm.py` 13, `test_llm_yandex.py` 4, rewrites of
+  `test_clustering.py` 5 and `test_article_writer.py` 9 to mock
+  `llm.generate` instead of the old `_claude()` helper). 78/78 pass.
+
+  Smoke-tested locally with `docker compose down -v && up -d`: fresh schema
+  applies via `/docker-entrypoint-initdb.d/`, seed inserts project with
+  default `llm_provider=deepseek/llm_model=deepseek-chat`, all four
+  services come up healthy, HTTP / still redirects to `/ru` per the
+  M4 middleware.
+
+  Deferred to M8: wizard step asking for provider with language-aware
+  default + disclosure text; admin Settings "LLM Provider" section +
+  Test Connection / Save & Restart endpoints; per-provider docs in
+  `docs/PROVIDERS.md`.
+  Deferred to M9: real DeepSeek E2E with a user-provided key;
+  per-provider temperature/max_tokens tuning if quality varies;
+  Markdown editor; force-generate; auto cron-sync; Portuguese; lint
+  workflow.
+
 ## [v0.1.0] — 2026-05-18
 
 First public release. Self-hosted AI news aggregator — install with a

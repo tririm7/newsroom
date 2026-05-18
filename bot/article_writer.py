@@ -1,9 +1,11 @@
-"""Claude-driven article writer.
+"""LLM-driven article writer.
 
 Loads the system prompt from `prompts/article_{locale}.txt`. User message
-is a JSON payload with the cluster headline + source items. Claude returns
-{title, slug, excerpt, content_html} which we sanitize and insert into the
-articles table.
+is a JSON payload with the cluster headline + source items. The LLM returns
+{title, slug, excerpt, content_html} which we sanitize and insert into
+the articles table.
+
+Provider-agnostic — see bot/llm.py for the dispatcher.
 """
 from __future__ import annotations
 
@@ -12,10 +14,8 @@ import logging
 import re
 from pathlib import Path
 
-import anthropic
-
 import db
-import settings
+import llm
 from jsonparse import parse_lenient
 
 logger = logging.getLogger(__name__)
@@ -23,10 +23,6 @@ logger = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 _SLUG_NON_ALNUM = re.compile(r"[^a-z0-9-]+")
-
-
-def _claude() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
 def _load_prompt(language: str) -> str:
@@ -50,7 +46,7 @@ def write_article(project_id: int, language: str, cluster: dict) -> dict | None:
         logger.warning("cluster %s has no items, skipping article gen", cluster["id"])
         return None
 
-    system = _load_prompt(language)
+    system_prompt = _load_prompt(language)
     payload = {
         "headline": cluster["headline"],
         "description": cluster.get("description"),
@@ -65,14 +61,19 @@ def write_article(project_id: int, language: str, cluster: dict) -> dict | None:
         ],
     }
 
-    client = _claude()
-    resp = client.messages.create(
-        model=settings.CLAUDE_MODEL_WRITE,
-        max_tokens=4096,
-        system=system,
-        messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-    )
-    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
+    try:
+        text = llm.generate(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+            ],
+            max_tokens=4096,
+            temperature=0.7,
+        )
+    except Exception:
+        logger.exception("article writer: LLM call failed for cluster %s", cluster["id"])
+        return None
+
     try:
         data = parse_lenient(text)
     except Exception:

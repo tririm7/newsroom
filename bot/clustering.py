@@ -1,9 +1,13 @@
-"""Claude-driven clustering.
+"""LLM-driven clustering.
 
 Loads the system prompt from `prompts/clustering_{locale}.txt`. The user
-message is a JSON payload with new items + active clusters. Claude returns
+message is a JSON payload with new items + active clusters. The LLM returns
 groups describing how items map onto existing clusters, new clusters, or
 off-topic skips.
+
+Provider-agnostic: routes through `bot/llm.py` which dispatches to whichever
+provider is configured in `LLM_PROVIDER` env (DeepSeek, OpenAI, Anthropic,
+Gemini, Grok, Yandex, OpenRouter, or a custom OpenAI-compatible endpoint).
 """
 from __future__ import annotations
 
@@ -11,18 +15,12 @@ import json
 import logging
 from pathlib import Path
 
-import anthropic
-
-import settings
+import llm
 from jsonparse import parse_lenient
 
 logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
-
-
-def _claude() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
 def _load_prompt(language: str) -> str:
@@ -64,26 +62,31 @@ def cluster_new_items(
     sources_by_id: dict[int, dict],
 ) -> dict:
     """Returns `{"groups": [...]}` where each group is one of:
-      - {item_ids: [...], cluster_id: int}          (attach to existing)
-      - {item_ids: [...], headline: str, description: str}  (new cluster)
-      - {item_ids: [...], skip: true}               (off-topic)
+      - {item_ids: [...], cluster_id: int}                 (attach to existing)
+      - {item_ids: [...], headline: str, description: str} (new cluster)
+      - {item_ids: [...], skip: true}                      (off-topic)
     """
     if not new_items:
         return {"groups": []}
 
-    system = _load_prompt(language)
+    system_prompt = _load_prompt(language)
     payload = {
         "new_items": _items_for_prompt(new_items, sources_by_id),
         "active_clusters": _clusters_for_prompt(active_clusters),
     }
-    client = _claude()
-    resp = client.messages.create(
-        model=settings.CLAUDE_MODEL_CLUSTER,
-        max_tokens=16384,
-        system=system,
-        messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-    )
-    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
+    try:
+        text = llm.generate(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+            ],
+            max_tokens=16384,
+            temperature=0.7,
+        )
+    except Exception:
+        logger.exception("clustering: LLM call failed")
+        raise
+
     try:
         data = parse_lenient(text)
     except Exception:

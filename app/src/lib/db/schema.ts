@@ -31,6 +31,11 @@ export const projects = pgTable("projects", {
   ingestionCron: text("ingestion_cron").notNull(),
   generationCron: text("generation_cron").notNull(),
 
+  // LLM provider config (v0.2)
+  llmProvider: text("llm_provider").notNull().default("deepseek"),
+  llmModel: text("llm_model").notNull().default("deepseek-chat"),
+  llmBaseUrl: text("llm_base_url"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -86,9 +86,14 @@ POSTGRES_USER=newsroom
 POSTGRES_PASSWORD=$pg_pw
 DATABASE_URL=$db_url
 NEXTAUTH_SECRET=$nx_secret
-ANTHROPIC_API_KEY=$WIZ_ANTHROPIC_KEY
 PROJECT_SLUG=newsroom
 PROJECT_DEFAULT_LOCALE=$WIZ_LOCALE
+# LLM provider config (v0.2). Wizard currently writes the provider/model
+# the user picked + their key. M8 will add provider-aware help text.
+LLM_PROVIDER=${WIZ_LLM_PROVIDER:-deepseek}
+LLM_MODEL=${WIZ_LLM_MODEL:-deepseek-chat}
+LLM_API_KEY=${WIZ_LLM_API_KEY:-$WIZ_ANTHROPIC_KEY}
+LLM_BASE_URL=${WIZ_LLM_BASE_URL:-}
 NODE_ENV=production
 TZ=$WIZ_TIMEZONE
 EOF
