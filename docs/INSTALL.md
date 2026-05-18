@@ -2,7 +2,80 @@
 
 ## Production (one-liner installer)
 
-TBD — written during M2 once the wizard is functional. Will cover VPS requirements, the `curl … | bash` one-liner, DNS prerequisites, and post-install verification.
+Available since M2. Runs an interactive wizard on a fresh Ubuntu 22.04+ / Debian 12+ VPS.
+
+### Prerequisites
+
+- Fresh Ubuntu 22.04+ or Debian 12+
+- Root access (or sudo)
+- A domain with an A-record pointing at the server (for auto-TLS)
+- An Anthropic API key (`sk-ant-...`)
+
+### One-liner (curl)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tririm7/newsroom/main/install.sh | sudo bash
+```
+
+This clones the repo into `/opt/newsroom`, installs Docker + Compose + whiptail if missing, then drops you into the wizard.
+
+### Two-step (git clone)
+
+```bash
+git clone https://github.com/tririm7/newsroom.git /opt/newsroom
+cd /opt/newsroom
+sudo ./install.sh
+```
+
+### What the wizard asks
+
+1. **Domain** — your site URL (or `localhost` for local-only)
+2. **Language** — Russian / English / Spanish
+3. **Timezone** — IANA name (default depends on language)
+4. **Site name + description** — header + SEO meta
+5. **Branding** — hex color + 1–4 char suffix (the bit after the brand name in a colored box)
+6. **Preset** — starter pack of sources + keywords:
+   - `ai-news` — OpenAI, Anthropic, MIT TR, Stratechery, ... (13 sources, 28 keywords)
+   - `business` — Bloomberg, Reuters, WSJ, FT, CNBC, ... (13 / 29)
+   - `crypto` — CoinDesk, The Block, Decrypt, ... (10 / 28)
+   - `science` — Nature, Quanta, MIT TR, Ars Technica, ... (10 / 26)
+   - `custom` — empty; you add sources via admin
+7. **Admin password** — minimum 12 characters
+8. **Anthropic API key**
+
+### What the installer does (post-wizard)
+
+| Step | What                                                          | Duration   |
+|------|---------------------------------------------------------------|------------|
+| 0    | Generate `POSTGRES_PASSWORD`, `NEXTAUTH_SECRET`, `DATABASE_URL` | < 1 s     |
+| 1    | Write `.env` (mode 0600)                                       | < 1 s     |
+| 2    | `docker compose build` — both images                           | ~3–5 min   |
+| 3    | Start Postgres, schema auto-applies via init-script            | ~30 s      |
+| 4    | Seed project + admin user + sources + keywords                 | ~10 s      |
+| 5    | Start app + Caddy + bot-cron                                   | ~30 s      |
+| 6    | Wait for Let's Encrypt cert (skipped if `domain=localhost`)    | ~1–2 min   |
+
+End result: `https://your-domain` shows the site; `https://your-domain/admin` lets you log in as `admin`.
+
+### Resume after failure
+
+If any post-wizard step fails, fix the underlying issue (DNS, disk, API quota) and re-run:
+
+```bash
+sudo /opt/newsroom/install.sh --resume
+```
+
+This skips the wizard (answers saved in `/tmp/newsroom-wizard.env`) and replays the build/seed/start chain.
+
+### Useful flags
+
+- `--skip-docker` — assume Docker is already installed
+- `--resume` — skip wizard, reuse saved answers
+- `--help` — show all flags
+
+---
+
+## Development (manual Docker Compose)
 
 ## Development (manual Docker Compose)
 

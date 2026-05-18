@@ -1,0 +1,5 @@
+name: "Custom"
+description: "Empty preset — sources and keywords are added via the admin panel after install."
+
+sources: []
+keywords: []

@@ -1,0 +1,47 @@
+name: "AI news"
+description: "Tracking AI labs, model releases, deals, and regulation."
+
+sources:
+  - { name: "TechCrunch AI",      url: "https://techcrunch.com/category/artificial-intelligence/feed/", type: "rss", language: "en", tier: 2 }
+  - { name: "The Information",    url: "https://www.theinformation.com/feed",                            type: "rss", language: "en", tier: 1 }
+  - { name: "Stratechery",        url: "https://stratechery.com/feed/",                                   type: "rss", language: "en", tier: 2 }
+  - { name: "Platformer",         url: "https://www.platformer.news/feed",                                type: "rss", language: "en", tier: 2 }
+  - { name: "Anthropic News",     url: "https://www.anthropic.com/news/feed",                             type: "rss", language: "en", tier: 1 }
+  - { name: "OpenAI Blog",        url: "https://openai.com/blog/rss.xml",                                 type: "rss", language: "en", tier: 1 }
+  - { name: "Google AI Blog",     url: "https://blog.google/technology/ai/rss/",                          type: "rss", language: "en", tier: 2 }
+  - { name: "DeepMind Blog",      url: "https://deepmind.google/blog/feed/basic/",                        type: "rss", language: "en", tier: 2 }
+  - { name: "Meta AI",            url: "https://ai.meta.com/blog/rss/",                                   type: "rss", language: "en", tier: 2 }
+  - { name: "Hugging Face Blog",  url: "https://huggingface.co/blog/feed.xml",                            type: "rss", language: "en", tier: 3 }
+  - { name: "MIT Tech Review AI", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed", type: "rss", language: "en", tier: 2 }
+  - { name: "Ars Technica AI",    url: "https://arstechnica.com/ai/feed/",                                type: "rss", language: "en", tier: 2 }
+  - { name: "VentureBeat AI",     url: "https://venturebeat.com/category/ai/feed/",                       type: "rss", language: "en", tier: 3 }
+
+keywords:
+  - { pattern: "AI",                       category: "general" }
+  - { pattern: "artificial intelligence",  category: "general" }
+  - { pattern: "machine learning",         category: "general" }
+  - { pattern: "neural network",           category: "general" }
+  - { pattern: "LLM",                      category: "models" }
+  - { pattern: "GPT",                      category: "models" }
+  - { pattern: "Claude",                   category: "models" }
+  - { pattern: "Gemini",                   category: "models" }
+  - { pattern: "Llama",                    category: "models" }
+  - { pattern: "Mistral",                  category: "models" }
+  - { pattern: "OpenAI",                   category: "companies" }
+  - { pattern: "Anthropic",                category: "companies" }
+  - { pattern: "DeepMind",                 category: "companies" }
+  - { pattern: "Hugging Face",             category: "companies" }
+  - { pattern: "Cohere",                   category: "companies" }
+  - { pattern: "xAI",                      category: "companies" }
+  - { pattern: "Nvidia",                   category: "companies" }
+  - { pattern: "funding",                  category: "deals" }
+  - { pattern: "Series A",                 category: "deals" }
+  - { pattern: "Series B",                 category: "deals" }
+  - { pattern: "IPO",                      category: "deals" }
+  - { pattern: "acquisition",              category: "deals" }
+  - { pattern: "agent",                    category: "products" }
+  - { pattern: "chatbot",                  category: "products" }
+  - { pattern: "API",                      category: "products" }
+  - { pattern: "regulation",               category: "policy" }
+  - { pattern: "EU AI Act",                category: "policy" }
+  - { pattern: "executive order",          category: "policy" }

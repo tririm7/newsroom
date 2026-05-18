@@ -1,0 +1,48 @@
+name: "Business"
+description: "Markets, deals, earnings, macro — general business news."
+
+sources:
+  - { name: "Bloomberg Markets",   url: "https://feeds.bloomberg.com/markets/news.rss",      type: "rss", language: "en", tier: 1 }
+  - { name: "Bloomberg Deals",     url: "https://feeds.bloomberg.com/deals/news.rss",        type: "rss", language: "en", tier: 1 }
+  - { name: "Reuters Business",    url: "https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best", type: "rss", language: "en", tier: 1 }
+  - { name: "WSJ Markets",         url: "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain", type: "rss", language: "en", tier: 1 }
+  - { name: "FT Companies",        url: "https://www.ft.com/companies?format=rss",            type: "rss", language: "en", tier: 1 }
+  - { name: "CNBC Business",       url: "https://www.cnbc.com/id/10001147/device/rss/rss.html", type: "rss", language: "en", tier: 2 }
+  - { name: "The Economist",       url: "https://www.economist.com/business/rss.xml",         type: "rss", language: "en", tier: 2 }
+  - { name: "MarketWatch",         url: "https://www.marketwatch.com/rss/topstories",         type: "rss", language: "en", tier: 2 }
+  - { name: "Barron's",            url: "https://www.barrons.com/xml/rss/3_7510.xml",         type: "rss", language: "en", tier: 2 }
+  - { name: "Forbes Business",     url: "https://www.forbes.com/business/feed/",              type: "rss", language: "en", tier: 3 }
+  - { name: "Fortune",             url: "https://fortune.com/feed",                           type: "rss", language: "en", tier: 3 }
+  - { name: "Axios Markets",       url: "https://api.axios.com/feed/markets",                 type: "rss", language: "en", tier: 3 }
+  - { name: "Semafor Business",    url: "https://www.semafor.com/business/rss",               type: "rss", language: "en", tier: 3 }
+
+keywords:
+  - { pattern: "earnings",         category: "markets" }
+  - { pattern: "revenue",          category: "markets" }
+  - { pattern: "guidance",         category: "markets" }
+  - { pattern: "stock",            category: "markets" }
+  - { pattern: "S&P 500",          category: "markets" }
+  - { pattern: "Nasdaq",           category: "markets" }
+  - { pattern: "Fed",              category: "macro" }
+  - { pattern: "Federal Reserve",  category: "macro" }
+  - { pattern: "rate hike",        category: "macro" }
+  - { pattern: "rate cut",         category: "macro" }
+  - { pattern: "inflation",        category: "macro" }
+  - { pattern: "GDP",              category: "macro" }
+  - { pattern: "unemployment",     category: "macro" }
+  - { pattern: "deal",             category: "deals" }
+  - { pattern: "acquisition",      category: "deals" }
+  - { pattern: "merger",           category: "deals" }
+  - { pattern: "IPO",              category: "deals" }
+  - { pattern: "buyout",           category: "deals" }
+  - { pattern: "Apple",            category: "companies" }
+  - { pattern: "Microsoft",        category: "companies" }
+  - { pattern: "Google",           category: "companies" }
+  - { pattern: "Amazon",           category: "companies" }
+  - { pattern: "Tesla",            category: "companies" }
+  - { pattern: "Nvidia",           category: "companies" }
+  - { pattern: "Meta",             category: "companies" }
+  - { pattern: "JPMorgan",         category: "companies" }
+  - { pattern: "Goldman Sachs",    category: "companies" }
+  - { pattern: "strike",           category: "workforce" }
+  - { pattern: "layoffs",          category: "workforce" }

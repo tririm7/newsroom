@@ -1,0 +1,44 @@
+name: "Crypto"
+description: "Bitcoin, Ethereum, DeFi, regulation, on-chain news."
+
+sources:
+  - { name: "CoinDesk",          url: "https://www.coindesk.com/arc/outboundfeeds/rss/", type: "rss", language: "en", tier: 1 }
+  - { name: "The Block",         url: "https://www.theblock.co/rss.xml",                  type: "rss", language: "en", tier: 1 }
+  - { name: "Decrypt",           url: "https://decrypt.co/feed",                          type: "rss", language: "en", tier: 2 }
+  - { name: "Cointelegraph",     url: "https://cointelegraph.com/rss",                    type: "rss", language: "en", tier: 2 }
+  - { name: "Bitcoin Magazine",  url: "https://bitcoinmagazine.com/.rss/full/",           type: "rss", language: "en", tier: 3 }
+  - { name: "Crypto Briefing",   url: "https://cryptobriefing.com/feed/",                 type: "rss", language: "en", tier: 3 }
+  - { name: "Messari",           url: "https://messari.io/rss",                           type: "rss", language: "en", tier: 2 }
+  - { name: "Bankless",          url: "https://newsletter.banklesshq.com/feed",           type: "rss", language: "en", tier: 3 }
+  - { name: "Watcher.Guru",      url: "https://watcher.guru/news/feed",                   type: "rss", language: "en", tier: 4 }
+  - { name: "DL News",           url: "https://www.dlnews.com/arc/outboundfeeds/rss/",    type: "rss", language: "en", tier: 3 }
+
+keywords:
+  - { pattern: "Bitcoin",         category: "assets" }
+  - { pattern: "BTC",             category: "assets" }
+  - { pattern: "Ethereum",        category: "assets" }
+  - { pattern: "ETH",             category: "assets" }
+  - { pattern: "Solana",          category: "assets" }
+  - { pattern: "stablecoin",      category: "assets" }
+  - { pattern: "USDC",            category: "assets" }
+  - { pattern: "USDT",            category: "assets" }
+  - { pattern: "Tether",          category: "companies" }
+  - { pattern: "Circle",          category: "companies" }
+  - { pattern: "Binance",         category: "companies" }
+  - { pattern: "Coinbase",        category: "companies" }
+  - { pattern: "Kraken",          category: "companies" }
+  - { pattern: "OKX",             category: "companies" }
+  - { pattern: "ETF",             category: "markets" }
+  - { pattern: "spot ETF",        category: "markets" }
+  - { pattern: "halving",         category: "markets" }
+  - { pattern: "DeFi",            category: "defi" }
+  - { pattern: "liquidity",       category: "defi" }
+  - { pattern: "yield",           category: "defi" }
+  - { pattern: "lending",         category: "defi" }
+  - { pattern: "SEC",             category: "policy" }
+  - { pattern: "CFTC",            category: "policy" }
+  - { pattern: "MiCA",            category: "policy" }
+  - { pattern: "regulation",      category: "policy" }
+  - { pattern: "hack",            category: "security" }
+  - { pattern: "exploit",         category: "security" }
+  - { pattern: "rug pull",        category: "security" }
