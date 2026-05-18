@@ -1,0 +1,6 @@
+-- Newsroom initial schema migration.
+-- Implementation lands in M1 (full schema per newsroom-spec.md + patches v1.1).
+-- Notes for M1:
+--   * Multi-tenant ready: every table carries project_id (Newsroom Open uses project_id = 1).
+--   * No `sessions` table — NextAuth v5 uses JWT strategy (patches v1.1 #1).
+--   * `bot_runs.errors` is JSONB, not TEXT (patches v1.1 #5).

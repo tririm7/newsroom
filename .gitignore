@@ -1,0 +1,44 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Env / secrets — never commit; template lives in .env.example
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# Generated cron file lives on client server; template lives in repo
+/crontab
+
+# Logs
+*.log
+logs/
+
+# Backups (created by scripts/backup.sh on client server)
+backups/
