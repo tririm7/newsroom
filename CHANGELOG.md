@@ -7,6 +7,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 ### Added
 
+- M5: admin panel (v1 — auth, dashboard, sources, articles, settings).
+  NextAuth v5 with JWT-only sessions (patches v1.1 #1), Credentials
+  provider verifying bcrypt hashes against `users.password_hash`.
+  /admin/login + /admin/(authed)/{dashboard,sources,articles,settings}
+  via route-group layout — `(authed)/layout.tsx` calls `auth()` and
+  redirects to login when no session. Sources page supports add-by-URL,
+  add-by-discovery (TypeScript port of `bot/rss_discovery.py` at
+  `src/lib/admin/discover.ts` — no shell-out to bot container needed),
+  active/inactive toggle, delete. Articles page supports publish/draft
+  toggle + delete. Settings page shows project metadata + change-password
+  form. Every `/api/admin/*` endpoint guards with `await auth()` returning
+  401 on no session. Dashboard pulls counts via a single CTE-style query
+  (`getDashboardStats`). Middleware matcher excludes `/admin` so the
+  i18n middleware doesn't fight the auth flow. Verified locally with the
+  M2 seed admin credentials: full curl-based login round trip (CSRF →
+  signin → authjs.session-token cookie → 200 on /admin and JSON on
+  /api/admin/sources), discovery endpoint correctly resolves
+  techcrunch.com → /feed/, wrong-password sign-in returns no
+  session-token. Deferred to M5.1: keywords UI, clusters UI
+  (force-generate, deactivate), static-pages CMS, cron / branding
+  settings (still SQL-editable for v0.1).
+
 - M4: public frontend. Next.js 15 App Router under `app/src/app/[locale]/`
   with feed (`/`), article page (`/article/[slug]`), archive (`/articles`),
   and dynamic static-page renderer (`/[slug]` — reads from `static_pages`

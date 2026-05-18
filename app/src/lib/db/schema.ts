@@ -35,6 +35,15 @@ export const projects = pgTable("projects", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  username: text("username").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("admin"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const sources = pgTable("sources", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
@@ -121,3 +130,5 @@ export type Project = typeof projects.$inferSelect;
 export type Cluster = typeof clusters.$inferSelect;
 export type Article = typeof articles.$inferSelect;
 export type StaticPage = typeof staticPages.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type Source = typeof sources.$inferSelect;
