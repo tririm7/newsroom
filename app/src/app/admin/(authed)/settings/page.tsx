@@ -1,5 +1,6 @@
 import { PasswordForm } from "@/components/admin/PasswordForm";
-import { getCurrentProject } from "@/lib/project";
+import { ProjectSettingsForm } from "@/components/admin/ProjectSettingsForm";
+import { getCurrentProject, SUPPORTED_LOCALES } from "@/lib/project";
 
 export const dynamic = "force-dynamic";
 
@@ -7,29 +8,33 @@ export default async function SettingsPage() {
   const project = await getCurrentProject();
   return (
     <section>
-      <h1 className="text-2xl font-semibold mb-4">Settings</h1>
-
-      <h2 className="text-lg font-medium mb-2">Project</h2>
-      <dl className="text-sm grid grid-cols-[180px_1fr] gap-y-1 mb-8">
-        <dt className="text-gray-500">Slug</dt><dd>{project.slug}</dd>
-        <dt className="text-gray-500">Name</dt><dd>{project.name}</dd>
-        <dt className="text-gray-500">Domain</dt><dd>{project.domain}</dd>
-        <dt className="text-gray-500">Primary locale</dt><dd>{project.primaryLocale}</dd>
-        <dt className="text-gray-500">Timezone</dt><dd>{project.timezone}</dd>
-        <dt className="text-gray-500">Brand color</dt><dd>
-          <span className="inline-block w-3 h-3 mr-2 align-middle rounded-sm" style={{ background: project.brandColor }} />
-          <code>{project.brandColor}</code>
-        </dd>
-        <dt className="text-gray-500">Article min sources</dt><dd>{project.articleMinSources}</dd>
-        <dt className="text-gray-500">Max news age (h)</dt><dd>{project.maxNewsAgeHours}</dd>
-        <dt className="text-gray-500">Cluster inactivity (h)</dt><dd>{project.clusterInactivityHours}</dd>
-      </dl>
-      <p className="text-xs text-gray-500 mb-8">
-        Project knobs (branding, thresholds, cron) are editable via SQL in v0.1.
-        A UI editor lands in v0.2.
+      <h1 className="text-2xl font-semibold mb-1">Settings</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        Slug: <code>{project.slug}</code> · Domain: <code>{project.domain}</code>
       </p>
 
-      <h2 className="text-lg font-medium mb-2">Change admin password</h2>
+      <h2 className="text-lg font-medium mb-3">Project</h2>
+      <ProjectSettingsForm
+        locales={[...SUPPORTED_LOCALES]}
+        initial={{
+          name: project.name,
+          description: project.description,
+          brandName: project.brandName,
+          brandSuffix: project.brandSuffix,
+          brandColor: project.brandColor,
+          brandColorHover: project.brandColorHover,
+          primaryLocale: project.primaryLocale,
+          timezone: project.timezone,
+          articleMinSources: project.articleMinSources,
+          maxNewsAgeHours: project.maxNewsAgeHours,
+          clusterInactivityHours: project.clusterInactivityHours,
+          ingestionCron: project.ingestionCron,
+          generationCron: project.generationCron,
+          autoPublish: project.autoPublish,
+        }}
+      />
+
+      <h2 className="text-lg font-medium mt-10 mb-3">Change admin password</h2>
       <PasswordForm />
     </section>
   );

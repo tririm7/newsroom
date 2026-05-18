@@ -70,7 +70,8 @@ export function ArticlesTable({ initial }: { initial: Article[] }) {
               </td>
               <td className="py-2 pr-2 text-gray-500">{a.language}</td>
               <td className="py-2 text-xs">
-                <button onClick={() => toggle(a.id)} className="text-blue-600 hover:underline mr-3">
+                <a href={`/admin/articles/${a.id}`} className="text-blue-600 hover:underline mr-3">edit</a>
+                <button onClick={() => toggle(a.id)} className="text-gray-700 hover:underline mr-3">
                   {a.status === "published" ? "→ draft" : "→ publish"}
                 </button>
                 <button onClick={() => remove(a.id)} className="text-red-600 hover:underline">delete</button>

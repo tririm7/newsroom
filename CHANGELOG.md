@@ -7,6 +7,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 ### Added
 
+- M5.1: remaining admin CRUD — keywords, clusters list with deactivate /
+  reactivate, full static-pages CMS (new / edit / delete / publish toggle /
+  footer position), full article editor (title / slug / excerpt /
+  content_html / image / status), project settings editor (identity,
+  branding incl. live color picker, locale + timezone, pipeline
+  thresholds, cron strings, auto-publish toggle). `keywords` Drizzle
+  table added (was missing). API surface: GET/POST keywords,
+  PATCH/DELETE keywords/:id, PATCH clusters/:id (deactivate /
+  reactivate), GET/POST pages, GET/PATCH/DELETE pages/:id, PATCH
+  articles/:id with `action:"edit"` payload, PATCH settings/project.
+  Verified locally: all 8 admin pages 200 with session, all GET API
+  endpoints return JSON, POST keyword + PATCH project settings + POST
+  page round-trip to DB.
+  Deferred to v0.2: force-generate article on a cluster (needs bot
+  subprocess or queue table), markdown WYSIWYG (HTML textarea works for
+  v0.1), cron-file rewrite + bot-cron auto-restart (DB stores intent,
+  file rewrite still manual).
+
 - M5: admin panel (v1 — auth, dashboard, sources, articles, settings).
   NextAuth v5 with JWT-only sessions (patches v1.1 #1), Credentials
   provider verifying bcrypt hashes against `users.password_hash`.

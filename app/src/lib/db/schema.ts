@@ -55,6 +55,16 @@ export const sources = pgTable("sources", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
+export const keywords = pgTable("keywords", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  pattern: text("pattern").notNull(),
+  isRegex: boolean("is_regex").notNull().default(false),
+  category: text("category").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const items = pgTable("items", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
@@ -111,6 +121,8 @@ export const staticPages = pgTable("static_pages", {
   isPublished: boolean("is_published").notNull().default(false),
   footerPosition: integer("footer_position"),
   locale: text("locale").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const botRuns = pgTable("bot_runs", {
@@ -132,3 +144,4 @@ export type Article = typeof articles.$inferSelect;
 export type StaticPage = typeof staticPages.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Source = typeof sources.$inferSelect;
+export type Keyword = typeof keywords.$inferSelect;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
-import { deleteArticle, toggleArticleStatus } from "@/lib/admin/queries";
+import { deleteArticle, toggleArticleStatus, updateArticle } from "@/lib/admin/queries";
 import { getCurrentProject } from "@/lib/project";
 
 export async function PATCH(req: Request, { params }: {
@@ -20,6 +20,17 @@ export async function PATCH(req: Request, { params }: {
     const next = await toggleArticleStatus(project.id, id);
     if (next === null) return new NextResponse("Not found", { status: 404 });
     return NextResponse.json({ status: next });
+  }
+  if (body.action === "edit") {
+    const patch: Record<string, unknown> = {};
+    if (typeof body.title === "string") patch.title = body.title.slice(0, 300);
+    if (typeof body.slug === "string") patch.slug = body.slug.slice(0, 100);
+    if (typeof body.excerpt === "string" || body.excerpt === null) patch.excerpt = body.excerpt;
+    if (typeof body.contentHtml === "string") patch.contentHtml = body.contentHtml;
+    if (typeof body.imageUrl === "string" || body.imageUrl === null) patch.imageUrl = body.imageUrl;
+    if (body.status === "published" || body.status === "draft") patch.status = body.status;
+    await updateArticle(project.id, id, patch);
+    return NextResponse.json({ ok: true });
   }
   return new NextResponse("Unknown action", { status: 400 });
 }
