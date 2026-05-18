@@ -5,7 +5,8 @@ is a JSON payload with the cluster headline + source items. The LLM returns
 {title, slug, excerpt, content_html} which we sanitize and insert into
 the articles table.
 
-Provider-agnostic — see bot/llm.py for the dispatcher.
+Provider-agnostic — see bot/llm.py for the dispatcher. `llm_config` kwarg
+threads DB-loaded provider config from main_full.
 """
 from __future__ import annotations
 
@@ -40,7 +41,13 @@ def _sanitize_slug(slug: str, cluster_id: int) -> str:
     return s[:60].rstrip("-") or f"cluster-{cluster_id}"
 
 
-def write_article(project_id: int, language: str, cluster: dict) -> dict | None:
+def write_article(
+    project_id: int,
+    language: str,
+    cluster: dict,
+    *,
+    llm_config: llm.LLMConfig | None = None,
+) -> dict | None:
     items = cluster.get("items") or []
     if not items:
         logger.warning("cluster %s has no items, skipping article gen", cluster["id"])
@@ -67,6 +74,7 @@ def write_article(project_id: int, language: str, cluster: dict) -> dict | None:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
             ],
+            config=llm_config,
             max_tokens=4096,
             temperature=0.7,
         )

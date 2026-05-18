@@ -308,3 +308,15 @@ export async function updateProject(projectId: number, patch: Partial<{
     .set({ ...patch, updatedAt: new Date() })
     .where(eq(projects.id, projectId));
 }
+
+export async function updateProjectLLM(projectId: number, patch: {
+  llmProvider: string;
+  llmModel: string;
+  llmApiKey: string | null;
+  llmBaseUrl: string | null;
+}) {
+  await db
+    .update(projects)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+}

@@ -37,7 +37,8 @@ CREATE TABLE projects (
     llm_provider TEXT NOT NULL DEFAULT 'deepseek'
         CHECK (llm_provider IN ('deepseek','openai','anthropic','gemini','grok','yandex','openrouter','custom')),
     llm_model TEXT NOT NULL DEFAULT 'deepseek-chat',
-    llm_base_url TEXT,  -- only for provider=custom
+    llm_api_key TEXT,    -- stored plaintext (same perimeter as .env). Encryption is v0.3.
+    llm_base_url TEXT,   -- only for provider=custom
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

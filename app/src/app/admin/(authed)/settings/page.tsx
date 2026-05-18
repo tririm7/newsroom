@@ -1,3 +1,4 @@
+import { LLMProviderForm } from "@/components/admin/LLMProviderForm";
 import { PasswordForm } from "@/components/admin/PasswordForm";
 import { ProjectSettingsForm } from "@/components/admin/ProjectSettingsForm";
 import { getCurrentProject, SUPPORTED_LOCALES } from "@/lib/project";
@@ -31,6 +32,16 @@ export default async function SettingsPage() {
           ingestionCron: project.ingestionCron,
           generationCron: project.generationCron,
           autoPublish: project.autoPublish,
+        }}
+      />
+
+      <h2 className="text-lg font-medium mt-10 mb-3">LLM provider</h2>
+      <LLMProviderForm
+        current={{
+          provider: project.llmProvider as never,
+          model: project.llmModel,
+          baseUrl: project.llmBaseUrl,
+          hasApiKey: !!project.llmApiKey,
         }}
       />
 

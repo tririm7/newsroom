@@ -7,6 +7,64 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 ### Added
 
+- M8 (v0.2 in-progress): wizard provider step + admin LLM section +
+  PROVIDERS.md.
+
+  **Bot refactor.** `bot/llm.py` now exposes an `LLMConfig` dataclass
+  and two builders — `from_settings()` (env-based, bootstrap) and
+  `from_project(project_row)` (DB-based, authoritative). `generate()`
+  and `get_client()` accept an explicit `config` kwarg.
+  `main_full.py` builds config from the DB project row, so admin saves
+  take effect on the next cron tick — no container restart required.
+  Same threading through clustering and article_writer.
+
+  **Schema.** `projects.llm_api_key TEXT` (plaintext for v0.2;
+  encryption is on the v0.3 roadmap, documented in PROVIDERS.md).
+  DB is the source of truth; `.env`'s `LLM_API_KEY` is bootstrap
+  fallback only.
+
+  **Seed.** `bot/seed.py` accepts `--llm-provider`, `--llm-model`,
+  `--llm-api-key`, `--llm-base-url` — installer wires wizard answers
+  through.
+
+  **Wizard.** New step after locale selection: provider picker with
+  language-aware default (`ru → deepseek`, `es → gemini`, else
+  `openai`), per-provider disclosure msgbox, model default per provider,
+  API-key prompt, base-URL prompt only for `custom`.
+
+  **Admin UI.** `/admin/settings` gains an LLM Provider section
+  (`LLMProviderForm.tsx`): provider dropdown, model input, API-key
+  field (password-masked with show/hide, empty = keep stored),
+  disclosure note, "get one here" link per provider, two buttons:
+    - **Test connection** → POST `/api/admin/llm/test` sends a
+      clustering-shaped request through the chosen provider and
+      reports real ok/error + sample response + duration.
+    - **Save** → POST `/api/admin/llm/save` updates the DB. Returns a
+      note explaining the change takes effect on the next bot cron tick.
+
+  **TS port.** `app/src/lib/admin/llm_test.ts` mirrors `bot/llm.py` +
+  `bot/llm_yandex.py` so Test Connection runs through the exact same
+  wire format the bot uses. OpenAI SDK with swapped `baseURL` handles
+  6 providers; Yandex via raw `fetch`. `app/package.json` gains
+  `openai`.
+
+  **PROVIDERS.md.** Per-provider setup steps, key URLs, recommended
+  models, region notes, disclosure paragraph for all 8.
+
+  Smoke-tested locally:
+    - 81/81 unit tests pass (78 from M7 + 3 new: from_project, env
+      fallback, explicit-config-wins-over-settings).
+    - DeepSeek Test Connection with a fake key returned a real 401
+      from DeepSeek's API in 554ms — proves the abstraction actually
+      dispatches to upstream.
+    - Save round-trip: provider=openai model=gpt-4o key=... → DB row
+      updated; bot would pick it up on next tick.
+
+  Deferred to M9: real DeepSeek E2E with the user's key +
+  PROVIDER_QUALITY.md; per-provider tuning; Markdown editor;
+  force-generate via DB flag; cron-file auto-rewrite; pt locale;
+  lint workflow.
+
 - M7 (v0.2 in-progress): LLM provider abstraction. Bot no longer talks to
   Anthropic directly — clustering and article generation route through a
   new `bot/llm.py` dispatcher that supports eight providers:

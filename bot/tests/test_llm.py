@@ -30,13 +30,13 @@ def test_supported_providers_list():
 
 def test_unknown_provider_raises(monkeypatch):
     monkeypatch.setattr(settings, "LLM_PROVIDER", "totally-fake")
-    with pytest.raises(ValueError, match="Unknown LLM_PROVIDER"):
+    with pytest.raises(ValueError, match="Unknown provider"):
         llm.get_client()
 
 
 def test_empty_api_key_raises(monkeypatch):
     monkeypatch.setattr(settings, "LLM_API_KEY", "")
-    with pytest.raises(RuntimeError, match="LLM_API_KEY is not set"):
+    with pytest.raises(RuntimeError, match="api_key is empty"):
         llm.get_client()
 
 
@@ -77,7 +77,7 @@ def test_yandex_returns_yandex_client(monkeypatch):
 def test_custom_provider_requires_base_url(monkeypatch):
     monkeypatch.setattr(settings, "LLM_PROVIDER", "custom")
     monkeypatch.setattr(settings, "LLM_BASE_URL", "")
-    with pytest.raises(RuntimeError, match="LLM_BASE_URL is required"):
+    with pytest.raises(RuntimeError, match="base_url is required"):
         llm.get_client()
 
 
@@ -139,3 +139,47 @@ def test_generate_passes_custom_max_tokens_and_temperature(monkeypatch):
     call_kwargs = fake_client.chat.completions.create.call_args.kwargs
     assert call_kwargs["max_tokens"] == 4096
     assert call_kwargs["temperature"] == 0.5
+
+
+# ---------- LLMConfig + from_project ----------
+
+
+def test_from_project_uses_db_columns():
+    project = {
+        "llm_provider": "openai",
+        "llm_model": "gpt-4o",
+        "llm_api_key": "sk-from-db",
+        "llm_base_url": None,
+    }
+    cfg = llm.from_project(project)
+    assert cfg.provider == "openai"
+    assert cfg.model == "gpt-4o"
+    assert cfg.api_key == "sk-from-db"
+    assert cfg.base_url == ""
+
+
+def test_from_project_falls_back_to_env_when_db_key_empty(monkeypatch):
+    monkeypatch.setattr(settings, "LLM_API_KEY", "sk-from-env")
+    project = {
+        "llm_provider": "openai",
+        "llm_model": "gpt-4o",
+        "llm_api_key": None,         # DB column empty
+        "llm_base_url": None,
+    }
+    cfg = llm.from_project(project)
+    assert cfg.api_key == "sk-from-env"
+
+
+def test_generate_uses_explicit_config_over_settings(monkeypatch):
+    """When config is passed explicitly, settings are ignored."""
+    monkeypatch.setattr(settings, "LLM_MODEL", "deepseek-chat")  # would be used by from_settings
+    fake_client = MagicMock()
+    fake_client.chat.completions.create.return_value = _make_response("ok")
+    cfg = llm.LLMConfig(provider="openai", model="gpt-4o", api_key="sk-explicit")
+
+    with patch.object(llm, "get_client", return_value=fake_client) as mock_get:
+        llm.generate(messages=[{"role": "user", "content": "x"}], config=cfg)
+
+    mock_get.assert_called_once_with(cfg)
+    call_kwargs = fake_client.chat.completions.create.call_args.kwargs
+    assert call_kwargs["model"] == "gpt-4o"   # from config, not settings

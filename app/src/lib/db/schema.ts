@@ -31,9 +31,11 @@ export const projects = pgTable("projects", {
   ingestionCron: text("ingestion_cron").notNull(),
   generationCron: text("generation_cron").notNull(),
 
-  // LLM provider config (v0.2)
+  // LLM provider config (v0.2). DB is the source of truth; .env's LLM_*
+  // is only used as bootstrap for fresh installs / fallback.
   llmProvider: text("llm_provider").notNull().default("deepseek"),
   llmModel: text("llm_model").notNull().default("deepseek-chat"),
+  llmApiKey: text("llm_api_key"),
   llmBaseUrl: text("llm_base_url"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

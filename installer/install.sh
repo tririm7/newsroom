@@ -88,11 +88,12 @@ DATABASE_URL=$db_url
 NEXTAUTH_SECRET=$nx_secret
 PROJECT_SLUG=newsroom
 PROJECT_DEFAULT_LOCALE=$WIZ_LOCALE
-# LLM provider config (v0.2). Wizard currently writes the provider/model
-# the user picked + their key. M8 will add provider-aware help text.
+# LLM provider — wizard collected these. DB is the authoritative source
+# (admin /admin/settings updates it). These env vars are bootstrap-only;
+# the bot reads from the projects row on every run.
 LLM_PROVIDER=${WIZ_LLM_PROVIDER:-deepseek}
 LLM_MODEL=${WIZ_LLM_MODEL:-deepseek-chat}
-LLM_API_KEY=${WIZ_LLM_API_KEY:-$WIZ_ANTHROPIC_KEY}
+LLM_API_KEY=${WIZ_LLM_API_KEY:-}
 LLM_BASE_URL=${WIZ_LLM_BASE_URL:-}
 NODE_ENV=production
 TZ=$WIZ_TIMEZONE
@@ -142,7 +143,11 @@ step_seed() {
             --timezone="$WIZ_TIMEZONE" \
             --brand-name="$WIZ_SITE_NAME" \
             --brand-suffix="$WIZ_BRAND_SUFFIX" \
-            --brand-color="$WIZ_BRAND_COLOR"
+            --brand-color="$WIZ_BRAND_COLOR" \
+            --llm-provider="$WIZ_LLM_PROVIDER" \
+            --llm-model="$WIZ_LLM_MODEL" \
+            --llm-api-key="$WIZ_LLM_API_KEY" \
+            --llm-base-url="$WIZ_LLM_BASE_URL"
     log_ok "Seed complete"
 }
 

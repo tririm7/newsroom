@@ -1,8 +1,13 @@
-"""Full pipeline — fast + Claude clustering for leftovers + article generation.
+"""Full pipeline — fast + LLM clustering for leftovers + article generation.
 
-Runs every 30 min (default crontab). RSS sweep → Jaccard match → Claude
+Runs every 30 min (default crontab). RSS sweep → Jaccard match → LLM
 clustering for items Jaccard missed → article writing for clusters that
 reached article_min_sources → stale cluster cleanup.
+
+Provider config is loaded from the `projects` row at the start of every
+run (admin changes take effect on the next cron tick — no container
+restart needed). Env LLM_API_KEY is used only as a fallback when the DB
+column is empty (fresh install).
 """
 from __future__ import annotations
 
@@ -10,6 +15,7 @@ import logging
 import sys
 
 import db
+import llm
 import settings
 from article_writer import write_article
 from clustering import cluster_new_items
@@ -25,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger("bot.main_full")
 
 JACCARD_THRESHOLD = 0.7
-CLUSTER_BATCH_MAX = 40  # cap items sent to Claude per run (cost control)
+CLUSTER_BATCH_MAX = 40  # cap items sent to LLM per run (cost control)
 
 
 def _apply_groups(
@@ -47,7 +53,7 @@ def _apply_groups(
         cid = g.get("cluster_id")
         if cid is not None:
             if int(cid) not in known_cluster_ids:
-                logger.warning("Claude hallucinated cluster_id=%s — treating as NEW", cid)
+                logger.warning("LLM hallucinated cluster_id=%s — treating as NEW", cid)
                 cid = None
             else:
                 cid = int(cid)
@@ -73,6 +79,13 @@ def main() -> int:
     project = db.get_project(settings.PROJECT_SLUG)
     project_id = project["id"]
     language = project["primary_locale"]
+
+    # DB is the source of truth for LLM config (admin /admin/settings writes
+    # here). Env LLM_API_KEY is the fallback for fresh installs.
+    llm_config = llm.from_project(project)
+    logger.info(
+        "LLM: provider=%s model=%s", llm_config.provider, llm_config.model,
+    )
 
     run_id = db.start_bot_run(project_id, "full")
     errors: list[dict] = []
@@ -118,7 +131,7 @@ def main() -> int:
             db.refresh_cluster_stats(cid)
         clusters_touched_total += len(jaccard_touched)
 
-        # 3) Claude clustering for leftover
+        # 3) LLM clustering for leftover
         if leftover:
             sources_by_id = {s["id"]: s for s in sources}
             known = db.active_cluster_ids(project_id)
@@ -128,12 +141,13 @@ def main() -> int:
                     new_items=leftover[:CLUSTER_BATCH_MAX],
                     active_clusters=actives,
                     sources_by_id=sources_by_id,
+                    llm_config=llm_config,
                 )
                 touched, skipped = _apply_groups(project_id, data.get("groups", []), known)
                 clusters_touched_total += touched
-                logger.info("Claude clustering: touched=%d off_topic=%d", touched, skipped)
+                logger.info("LLM clustering: touched=%d off_topic=%d", touched, skipped)
             except Exception as exc:
-                logger.exception("Claude clustering failed; leftover items stay unclustered")
+                logger.exception("LLM clustering failed; leftover items stay unclustered")
                 errors.append({"step": "clustering", "error": str(exc)})
 
         # 4) Score recompute
@@ -151,7 +165,7 @@ def main() -> int:
         logger.info("clusters needing article: %d", len(needing))
         for c in needing:
             try:
-                if write_article(project_id, language, c):
+                if write_article(project_id, language, c, llm_config=llm_config):
                     articles_created += 1
             except Exception as exc:
                 logger.exception("article gen failed for cluster %s", c["id"])

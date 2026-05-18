@@ -107,21 +107,94 @@ Installation will proceed but Let's Encrypt won't issue a TLS cert until DNS is 
         break
     done
 
-    # --- Anthropic key ---
-    log_step "Anthropic API key"
-    local api_key
+    # --- LLM provider ---
+    log_step "LLM provider"
+    # Language-aware default — surface a provider that works in the user's region.
+    local default_provider
+    case "$locale" in
+        ru) default_provider="deepseek" ;;
+        es) default_provider="gemini" ;;
+        *)  default_provider="openai" ;;
+    esac
+    prompt_msgbox "LLM provider" \
+"The bot uses an LLM to cluster RSS items and write articles. Newsroom supports 8 providers — pick one based on your region and budget.
+
+For language '$locale' the typical default is: $default_provider.
+You can change provider any time via /admin/settings."
+
+    local llm_provider llm_default_model
+    llm_provider=$(prompt_menu "Provider" "Pick an LLM provider:" \
+        "deepseek"   "DeepSeek (cheap, works in RU/CN)  — \$0.30/\$0.50 per M tokens" \
+        "openai"     "OpenAI GPT (\"ChatGPT\")          — not RU/CN" \
+        "anthropic"  "Anthropic Claude (premium)         — not RU/CN" \
+        "gemini"     "Google Gemini                       — not RU/CN" \
+        "grok"       "xAI Grok                            — not sanctioned regions" \
+        "yandex"     "Yandex GPT (RU local)               — RU only" \
+        "openrouter" "OpenRouter (gateway, any model)     — works everywhere" \
+        "custom"     "Custom — your OpenAI-compatible endpoint")
+
+    case "$llm_provider" in
+        deepseek)   llm_default_model="deepseek-chat" ;;
+        openai)     llm_default_model="gpt-4o" ;;
+        anthropic)  llm_default_model="claude-sonnet-4-6" ;;
+        gemini)     llm_default_model="gemini-2.5-flash" ;;
+        grok)       llm_default_model="grok-2-latest" ;;
+        yandex)     llm_default_model="b1g_REPLACE_FOLDER/yandexgpt-latest" ;;
+        openrouter) llm_default_model="anthropic/claude-sonnet-4.6" ;;
+        custom)     llm_default_model="" ;;
+    esac
+
+    local llm_disclosure
+    case "$llm_provider" in
+        deepseek)
+            llm_disclosure="⚠ Chinese provider — data processed in CN under their laws. Not for confidential data. Cheapest option."
+            ;;
+        openai)
+            llm_disclosure="✓ Industry standard. Data in US/EU. Does NOT work from RU/CN without VPN."
+            ;;
+        anthropic)
+            llm_disclosure="✓ Premium text quality. Pricey. Does NOT work from RU/CN without VPN."
+            ;;
+        gemini)
+            llm_disclosure="✓ Google infra. Good price/quality. Does NOT work from RU/CN without VPN."
+            ;;
+        grok)
+            llm_disclosure="✓ From xAI (Musk). Strong for tech news."
+            ;;
+        yandex)
+            llm_disclosure="✓ Russian provider, local jurisdiction. Only useful for the RU market."
+            ;;
+        openrouter)
+            llm_disclosure="✓ Gateway: pick any model from 100+. Markup on each call. Works from any region the provider does."
+            ;;
+        custom)
+            llm_disclosure="⚠ Your own OpenAI-compatible endpoint. You vouch for it."
+            ;;
+    esac
+    prompt_msgbox "About $llm_provider" "$llm_disclosure
+
+Setup guide: docs/PROVIDERS.md → $llm_provider"
+
+    local llm_model llm_api_key llm_base_url
+    llm_model=$(prompt_input "Model" "LLM model name (Yandex: '<folder_id>/<model>'):" "$llm_default_model")
+
     while :; do
-        api_key=$(prompt_password "Anthropic API key" "Anthropic API key (sk-ant-...):")
-        if validate_anthropic_key "$api_key"; then
+        llm_api_key=$(prompt_password "API key" "${llm_provider^} API key (we'll store this in the DB, never displayed in plaintext to users):")
+        if [[ -n "$llm_api_key" ]]; then
             break
         fi
-        if prompt_yesno "Invalid key format" \
-"'$(echo "$api_key" | cut -c1-12)...' does not match the expected sk-ant-... format.
+        if prompt_yesno "No key entered" \
+"You entered an empty API key. The bot won't be able to generate articles without one.
 
-Continue anyway? (Bot can't write articles until a valid key is set.)"; then
+You can paste it later via /admin/settings. Continue anyway?"; then
             break
         fi
     done
+
+    llm_base_url=""
+    if [[ "$llm_provider" == "custom" ]]; then
+        llm_base_url=$(prompt_input "Base URL" "Endpoint URL (must be OpenAI-Chat-Completions compatible):" "")
+    fi
 
     # --- Summary ---
     log_step "Summary"
@@ -138,6 +211,7 @@ Timezone: $tz
 Site:     $site_name
 Brand:    $brand_color, suffix '$brand_suffix'
 Preset:   $preset
+LLM:      $llm_provider / $llm_model
 
 Start installation?"; then
         log_error "Aborted by user."
@@ -156,7 +230,10 @@ Start installation?"; then
         printf 'WIZ_BRAND_SUFFIX=%q\n'   "$brand_suffix"
         printf 'WIZ_PRESET=%q\n'         "$preset"
         printf 'WIZ_ADMIN_PASSWORD=%q\n' "$admin_pw"
-        printf 'WIZ_ANTHROPIC_KEY=%q\n'  "$api_key"
+        printf 'WIZ_LLM_PROVIDER=%q\n'   "$llm_provider"
+        printf 'WIZ_LLM_MODEL=%q\n'      "$llm_model"
+        printf 'WIZ_LLM_API_KEY=%q\n'    "$llm_api_key"
+        printf 'WIZ_LLM_BASE_URL=%q\n'   "$llm_base_url"
     } > "$ANSWERS_FILE"
     log_ok "Wizard complete. Answers stored at $ANSWERS_FILE (mode 0600)."
 }

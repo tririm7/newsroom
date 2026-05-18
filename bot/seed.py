@@ -40,6 +40,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--brand-color", required=True, help="Hex #rrggbb")
     ap.add_argument("--brand-color-hover", default=None)
     ap.add_argument("--admin-username", default="admin")
+    ap.add_argument("--llm-provider", default="deepseek",
+                    choices=["deepseek", "openai", "anthropic", "gemini",
+                             "grok", "yandex", "openrouter", "custom"])
+    ap.add_argument("--llm-model", default="deepseek-chat")
+    ap.add_argument("--llm-api-key", default="")
+    ap.add_argument("--llm-base-url", default=None)
     return ap.parse_args()
 
 
@@ -89,8 +95,9 @@ def main() -> int:
                 INSERT INTO projects (
                     slug, name, domain, description,
                     primary_locale, timezone,
-                    brand_name, brand_suffix, brand_color, brand_color_hover
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    brand_name, brand_suffix, brand_color, brand_color_hover,
+                    llm_provider, llm_model, llm_api_key, llm_base_url
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
                 (
@@ -98,10 +105,13 @@ def main() -> int:
                     args.locale, args.timezone,
                     args.brand_name, args.brand_suffix,
                     args.brand_color, args.brand_color_hover,
+                    args.llm_provider, args.llm_model,
+                    args.llm_api_key or None, args.llm_base_url,
                 ),
             )
             project_id = cur.fetchone()[0]
-            print(f"  + project id={project_id} slug={args.slug}")
+            print(f"  + project id={project_id} slug={args.slug}"
+                  f" (llm={args.llm_provider}/{args.llm_model})")
 
             cur.execute(
                 "INSERT INTO users (project_id, username, password_hash) VALUES (%s, %s, %s)",

@@ -5,9 +5,9 @@ message is a JSON payload with new items + active clusters. The LLM returns
 groups describing how items map onto existing clusters, new clusters, or
 off-topic skips.
 
-Provider-agnostic: routes through `bot/llm.py` which dispatches to whichever
-provider is configured in `LLM_PROVIDER` env (DeepSeek, OpenAI, Anthropic,
-Gemini, Grok, Yandex, OpenRouter, or a custom OpenAI-compatible endpoint).
+Provider-agnostic: routes through `bot/llm.py`. The `llm_config` kwarg lets
+callers (main_full) pass DB-loaded provider config explicitly so admin
+changes take effect on the next cron tick without a container restart.
 """
 from __future__ import annotations
 
@@ -60,6 +60,7 @@ def cluster_new_items(
     new_items: list[dict],
     active_clusters: list[dict],
     sources_by_id: dict[int, dict],
+    llm_config: llm.LLMConfig | None = None,
 ) -> dict:
     """Returns `{"groups": [...]}` where each group is one of:
       - {item_ids: [...], cluster_id: int}                 (attach to existing)
@@ -80,6 +81,7 @@ def cluster_new_items(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
             ],
+            config=llm_config,
             max_tokens=16384,
             temperature=0.7,
         )
