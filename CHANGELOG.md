@@ -7,6 +7,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 ### Added
 
+- M4: public frontend. Next.js 15 App Router under `app/src/app/[locale]/`
+  with feed (`/`), article page (`/article/[slug]`), archive (`/articles`),
+  and dynamic static-page renderer (`/[slug]` — reads from `static_pages`
+  table). Tailwind CSS 4 (CSS-first config), next-intl 3 for UI strings
+  in ru/en/es. Brand color from `projects.brand_color` injected as
+  `--brand-accent` CSS var on the locale layout. Drizzle ORM schema
+  mirroring `drizzle/0000_initial.sql`; `postgres` driver. SEO routes
+  (patches v1.1 #7): dynamic `app/sitemap.ts` (lists all published
+  articles), `app/robots.ts`, dynamic `app/icon.tsx` (PNG generated from
+  brand_color via `next/og`). Custom middleware via `next-intl` redirects
+  `/` to `/<PROJECT_DEFAULT_LOCALE>`; matcher skips Next internals + icon
+  + sitemap + robots so they stay locale-agnostic. Installer writes
+  `PROJECT_DEFAULT_LOCALE` from the wizard's `--locale` answer; compose
+  passes it through to the app container. Verified locally against the
+  M2 seed + 2 demo clusters + 1 demo article + 3 demo static pages:
+  all five route types return 200 with correct content, sitemap.xml
+  lists articles, /icon serves a 64×64 PNG.
+
 - M3: bot pipeline. `bot/main_fast.py` (RSS ingest + Jaccard match, no LLM)
   and `bot/main_full.py` (fast + Claude clustering for leftovers + article
   generation + stale cluster cleanup) wire up the full automation path.

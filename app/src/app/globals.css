@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Brand color is injected per-request via <html style="--brand-accent: ..."> */
+:root {
+  --brand-accent: #1e3a8a;
+  --bg: #fafaf8;
+  --text: #1a1a1a;
+  --meta: #666;
+  --divider: #e0e0d8;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.55;
+}
+
+a {
+  color: var(--text);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}

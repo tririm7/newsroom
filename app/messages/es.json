@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "feed": "Noticias",
+    "articles": "Artículos",
+    "about": "Acerca de"
+  },
+  "feed": {
+    "empty": "Nada por aquí todavía — el bot pondrá al día pronto.",
+    "sources_one": "{count} fuente",
+    "sources_other": "{count} fuentes",
+    "read_article": "Leer artículo →"
+  },
+  "article": {
+    "back_to_feed": "← Volver al feed",
+    "sources_heading": "Fuentes"
+  },
+  "archive": {
+    "title": "Artículos",
+    "total": "Total: {count}",
+    "empty": "Aún no hay artículos publicados."
+  },
+  "footer": {
+    "made_with": "Hecho con Newsroom"
+  }
+}

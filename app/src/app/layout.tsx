@@ -1,13 +1,12 @@
 import type { ReactNode } from "react";
 
-export const metadata = {
-  title: "Newsroom",
-  description: "Self-hosted AI news aggregator",
-};
+import "./globals.css";
 
+// Root layout owns <html>/<body>. Brand color + lang attribute are set
+// inside the [locale] subtree (where we can hit the DB cleanly).
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html>
       <body>{children}</body>
     </html>
   );

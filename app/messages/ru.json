@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "feed": "Лента",
+    "articles": "Статьи",
+    "about": "О проекте"
+  },
+  "feed": {
+    "empty": "Пока пусто — бот скоро подтянет материалы.",
+    "sources_one": "{count} источник",
+    "sources_other": "{count} источников",
+    "read_article": "Читать статью →"
+  },
+  "article": {
+    "back_to_feed": "← К ленте",
+    "sources_heading": "Источники"
+  },
+  "archive": {
+    "title": "Статьи",
+    "total": "Всего: {count}",
+    "empty": "Статей пока нет."
+  },
+  "footer": {
+    "made_with": "Работает на Newsroom"
+  }
+}

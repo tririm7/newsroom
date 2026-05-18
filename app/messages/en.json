@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "feed": "Feed",
+    "articles": "Articles",
+    "about": "About"
+  },
+  "feed": {
+    "empty": "Nothing here yet — the bot will catch up shortly.",
+    "sources_one": "{count} source",
+    "sources_other": "{count} sources",
+    "read_article": "Read article →"
+  },
+  "article": {
+    "back_to_feed": "← Back to feed",
+    "sources_heading": "Sources"
+  },
+  "archive": {
+    "title": "Articles",
+    "total": "Total: {count}",
+    "empty": "No articles published yet."
+  },
+  "footer": {
+    "made_with": "Powered by Newsroom"
+  }
+}
