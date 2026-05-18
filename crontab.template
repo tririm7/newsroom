@@ -1,0 +1,13 @@
+# Newsroom bot schedule (supercronic crontab format).
+#
+# This file is mounted into the bot-cron container as /app/crontab.
+# Defaults below are sensible for most niches; the installer (M2) and
+# admin Settings page (M5) rewrite these lines when the user changes
+# schedule. supercronic re-reads on SIGHUP; the admin's cron-sync
+# endpoint sends `docker compose restart bot-cron`.
+
+# Fast ingestion — RSS sweep only (no clustering, no article generation)
+*/5 * * * * python -m main_fast
+
+# Full pipeline — ingestion + clustering + article generation
+15,45 * * * * python -m main_full

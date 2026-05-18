@@ -1,0 +1,14 @@
+# Optional dev override. Copy to docker-compose.override.yml to activate.
+# Compose auto-merges override on top of docker-compose.yml.
+
+services:
+  # Expose app directly on host port 3000 (bypassing Caddy).
+  # Handy when iterating on the app without rebuilding Caddy config.
+  app:
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  # Expose postgres on host port 5433 for local psql / drizzle-kit access.
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432"

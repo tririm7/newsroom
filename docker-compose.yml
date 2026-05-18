@@ -1,0 +1,103 @@
+# Newsroom stack — production-shape compose file.
+# Dev usage:   `cp .env.example .env && docker compose up -d` → http://localhost
+# Prod usage:  installer (M2) generates .env with auto-generated secrets,
+#              sets SITE_ADDRESS to your domain, brings the stack up.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-newsroom}
+      POSTGRES_USER: ${POSTGRES_USER:-newsroom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./app/drizzle/0000_initial.sql:/docker-entrypoint-initdb.d/0000_initial.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-newsroom} -d ${POSTGRES_DB:-newsroom}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - newsroom
+
+  app:
+    build:
+      context: ./app
+    image: newsroom-app:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${SITE_URL:-http://localhost}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NODE_ENV: ${NODE_ENV:-production}
+      TZ: ${TZ:-America/New_York}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - newsroom
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    networks:
+      - newsroom
+
+  # bot-cron: long-running supercronic scheduler.
+  # Reads /app/crontab (bind-mounted from ./crontab.template by default;
+  # installer/admin regenerate the host file when schedule changes).
+  bot-cron:
+    build:
+      context: ./bot
+    image: newsroom-bot:latest
+    restart: unless-stopped
+    command: ["supercronic", "/app/crontab"]
+    volumes:
+      - ./crontab.template:/app/crontab:ro
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TZ: ${TZ:-America/New_York}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - newsroom
+
+  # bot: one-shot manual runs. Gated by `manual` profile so `docker compose up`
+  # doesn't start it. Use:
+  #   docker compose --profile manual run --rm bot python -m main_full
+  bot:
+    image: newsroom-bot:latest
+    profiles: ["manual"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      TZ: ${TZ:-America/New_York}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - newsroom
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  newsroom:

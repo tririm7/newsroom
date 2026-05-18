@@ -1,0 +1,13 @@
+# Newsroom Caddyfile.
+# SITE_ADDRESS is provided via env:
+#   - dev:  ":80"               (HTTP only)
+#   - prod: "news.example.com"  (Caddy auto-issues TLS via Let's Encrypt)
+{$SITE_ADDRESS} {
+	encode gzip
+	reverse_proxy app:3000
+
+	log {
+		output stdout
+		format console
+	}
+}
