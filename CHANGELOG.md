@@ -5,7 +5,41 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 ## [Unreleased]
 
-### Added
+## [v0.1.0] — 2026-05-18
+
+First public release. Self-hosted AI news aggregator — install with a
+one-liner, configure via a 9-question wizard, manage via the web admin,
+upgrade with `./upgrade.sh`. Ships with Russian / English / Spanish UI
+and bot prompts, five preset niches (AI news, business, crypto,
+science, custom), bcrypt-protected admin, dynamic favicon + sitemap +
+robots, Caddy auto-TLS, and a supercronic-driven RSS → Claude
+clustering → article-writing pipeline. See [docs/INSTALL.md](docs/INSTALL.md)
+for the install flow and [docs/ADMIN.md](docs/ADMIN.md) for the panel
+walkthrough.
+
+### Added (M6 — polish + release)
+
+- `upgrade.sh` — pg_dump backup → git pull → docker compose build →
+  drizzle migrate → restart, with automatic code+DB rollback on failure
+  (patches v1.1 #4). Honest about downtime (30 s – 5 min).
+- `scripts/backup.sh` — daily `pg_dump | gzip` with rotation
+  (`BACKUP_KEEP=7` default). Pre-upgrade dumps tagged separately so
+  daily + upgrade backups don't collide.
+- `scripts/healthcheck.sh` — verifies every compose service is running,
+  Postgres accepts connections, HTTP / returns 2xx, last bot run is
+  recent. Exits non-zero on any failure — wire it into uptime alerts.
+- `scripts/reset-admin-password.sh` — host-side password reset for
+  lockout recovery. bcrypt hash generated inside the bot container, new
+  hash written via `psql -v` so the bcrypt `$` symbols don't need shell
+  escaping.
+- Filled-out docs: `INSTALL.md`, `ADMIN.md`, `UPGRADE.md`, `BACKUP.md`,
+  `TROUBLESHOOTING.md`, `ARCHITECTURE.md`, `CONFIGURATION.md`. No more
+  "TBD" stubs.
+- Locally verified: `backup.sh` writes a working gzipped dump,
+  `healthcheck.sh` reports green on a healthy stack, all four scripts
+  pass `bash -n`.
+
+### Added (M0–M5)
 
 - M5.1: remaining admin CRUD — keywords, clusters list with deactivate /
   reactivate, full static-pages CMS (new / edit / delete / publish toggle /

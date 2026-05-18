@@ -2,7 +2,7 @@
 
 Self-hosted AI news aggregator with admin panel. Like Ghost — but for thematic news feeds in the style of Techmeme.
 
-**Status:** v0.1 in development (M0 — repo skeleton).
+**Status:** v0.1.0 (first public release — 2026-05-18). See [CHANGELOG.md](CHANGELOG.md).
 
 One VPS, one `./install.sh`, and you get:
 

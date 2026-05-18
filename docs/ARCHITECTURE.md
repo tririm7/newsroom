@@ -1,5 +1,136 @@
 # Architecture
 
-TBD — fills in across M1–M5 as components land.
+For maintainers and contributors. End-user docs are in
+[INSTALL.md](INSTALL.md) and [ADMIN.md](ADMIN.md).
 
-Covers: container topology, data flow (RSS → items → clusters → articles), multi-tenant schema notes, auth (NextAuth v5 JWT-only), cron (supercronic).
+## Container topology
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ VPS (Ubuntu 22.04+ / Debian 12+)                        │
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │ caddy:2-alpine  ─── ports 80, 443 (auto-TLS)     │   │
+│  └──────────────────────┬───────────────────────────┘   │
+│                         │ reverse_proxy app:3000        │
+│         ┌───────────────▼────────────────┐              │
+│         │ newsroom-app (Next.js 15)      │              │
+│         │  • / (locale redirect)         │              │
+│         │  • /[locale]/{feed,article,…}  │              │
+│         │  • /admin/*  (NextAuth, JWT)   │              │
+│         │  • /api/admin/*                │              │
+│         └────────────────┬───────────────┘              │
+│                          │ pg                            │
+│         ┌────────────────▼───────────────┐              │
+│         │ postgres:16-alpine             │              │
+│         │  applies drizzle/0000_init…sql │              │
+│         │  via /docker-entrypoint-initdb │              │
+│         └────────────────▲───────────────┘              │
+│                          │                              │
+│         ┌────────────────┴───────────────┐              │
+│         │ newsroom-bot-cron (supercronic)│              │
+│         │  •  */5 *  → main_fast         │              │
+│         │  • 15,45 * → main_full         │              │
+│         └────────────────────────────────┘              │
+│                                                         │
+│  bot (profile=manual) — one-shot runs via `compose run` │
+└─────────────────────────────────────────────────────────┘
+```
+
+All inter-container traffic uses the compose-internal `newsroom`
+network; only Caddy publishes ports.
+
+## Data flow
+
+1. **Ingest** (`main_fast`, every 5 min):
+   `sources` → `requests.get` → `feedparser` → keyword filter
+   (`relevance.py`) → INSERT into `items` (dedupe via `UNIQUE(project_id,
+   url)`).
+2. **Match** (`main_fast` + `main_full`): unclustered items get Jaccard-
+   matched to existing cluster token-bags (`keyword_match.py`); above
+   threshold 0.7 they're attached without an LLM call.
+3. **Cluster** (`main_full` only): leftover items go to Claude with
+   `prompts/clustering_<locale>.txt` as system prompt. Response groups
+   items into existing-cluster attachments, new clusters, or off-topic
+   skips.
+4. **Score**: each active cluster gets a fresh
+   `source_count / (hours_since_last + 2)^1.5` — high-recency and
+   high-coverage stories surface to the top of the feed.
+5. **Write** (`main_full`): clusters with `source_count >=
+   article_min_sources` and no existing article get a Claude article
+   call (`prompts/article_<locale>.txt`). Output JSON is validated +
+   sanitized + inserted into `articles`.
+6. **Deactivate**: clusters whose `last_source_added_at` is older than
+   `cluster_inactivity_hours` flip `is_active = false`.
+
+## Schema
+
+`drizzle/0000_initial.sql` is the source of truth.
+`app/src/lib/db/schema.ts` is a hand-curated Drizzle mirror used by
+the frontend. They must stay in sync; future migrations land as new
+files in `drizzle/` and a parallel Drizzle update.
+
+Key conventions:
+
+- Every table carries `project_id`. Newsroom Open uses `project_id = 1`;
+  the same code path serves Layer 2 SaaS multi-tenant when that lands.
+- `bot_runs.errors` is `JSONB` (per patches v1.1 #5).
+- No `sessions` table — NextAuth v5 uses JWT-only sessions
+  (per patches v1.1 #1).
+
+## Auth
+
+NextAuth v5, Credentials provider, JWT strategy. Hashes are bcrypt
+(cost 12) — Python `bcrypt` (in `bot/seed.py` + `reset-admin-password.sh`)
+and Node `bcryptjs` (in the app) are wire-compatible (`$2b$` prefix).
+
+Protection lives in `app/src/app/admin/(authed)/layout.tsx`:
+`await auth()` returns the JWT-decoded session or `null`; absent → server
+`redirect("/admin/login")`. API routes under `/api/admin/*` do the same
+check inline; absent → 401.
+
+## i18n
+
+`next-intl` v3. Messages in `app/messages/{ru,en,es}.json`. Public site
+routes are prefixed `/[locale]/…`. Middleware (`src/middleware.ts`)
+redirects `/` → `/<PROJECT_DEFAULT_LOCALE>/`. The admin section is
+locale-agnostic (English-only in v0.1).
+
+The bot picks the matching `prompts/<task>_<locale>.txt` file based on
+`projects.primary_locale`.
+
+## Cron
+
+Container-native via `supercronic` (patches v1.1 #2). The `bot-cron`
+service runs `supercronic /app/crontab`; the file is bind-mounted from
+`./crontab.template` on the host. Admin "Save cron" stores the new
+schedule string in `projects.{ingestion_cron,generation_cron}` but does
+NOT yet rewrite the host file — `crontab.template` edit + restart of
+`bot-cron` is manual in v0.1.
+
+## Secrets
+
+- `POSTGRES_PASSWORD`, `NEXTAUTH_SECRET` — generated by the installer
+  (patches v1.1 #3), stored only in `.env` (mode 0600). Never visible
+  to the user.
+- `ANTHROPIC_API_KEY` — user-provided during install, stored in `.env`.
+- Admin password — bcrypt hash in `users.password_hash` only.
+
+## Build artifacts
+
+- `newsroom-app` image: ~270 MB (Next.js standalone, alpine).
+- `newsroom-bot` image: ~310 MB (Python 3.11-slim + bcrypt/psycopg
+  native bindings).
+- Postgres image: official `postgres:16-alpine`, ~80 MB.
+- Caddy image: official `caddy:2-alpine`, ~50 MB.
+
+## Tests
+
+`docker compose --profile manual run --rm bot python -m pytest tests/ -v`
+runs the 57 unit tests bundled with the bot (pure-function modules:
+jsonparse, relevance, scoring, keyword_match, rss with stubbed HTTP,
+rss_discovery, plus mocked-Claude shape tests for clustering and
+article_writer).
+
+The frontend has no automated tests in v0.1 — manual smoke testing on
+each admin / public route is the gate.
